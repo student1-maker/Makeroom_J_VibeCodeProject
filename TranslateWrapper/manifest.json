@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Translate Wrapper",
+  "description": "Connects the Translate Wrapper page to Google Translate.",
+  "version": "1.0.0",
+  "permissions": ["scripting", "tabs"],
+  "host_permissions": ["https://translate.google.com/*"],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://student1-maker.github.io/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

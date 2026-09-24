@@ -1,0 +1,4 @@
+Popup stuff for when needed:
+  "action": {
+    "default_popup": "popup.html"
+  }

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="A lightweight translation workspace powered by the Translate Wrapper extension.">
+	<title>Translate Wrapper</title>
+	<style>
+		@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+		:root {
+			--ink: #17221f;
+			--muted: #65716d;
+			--paper: #f7f6f0;
+			--panel: #fffef9;
+			--line: #d9ddd2;
+			--green: #176b55;
+			--green-dark: #0f4f40;
+			--orange: #e88642;
+			--shadow: 0 24px 60px rgba(23, 34, 31, 0.12);
+		}
+
+		* { box-sizing: border-box; }
+		body {
+			margin: 0;
+			min-height: 100vh;
+			color: var(--ink);
+			font-family: "DM Sans", sans-serif;
+			background: var(--paper);
+			background-image: radial-gradient(circle at 12% 14%, rgba(232, 134, 66, .2) 0 2px, transparent 3px), linear-gradient(135deg, #f7f6f0 0%, #eaf1e7 100%);
+		}
+		.shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding: 34px 0 60px; }
+		header { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 34px; }
+		.kicker { margin: 0 0 10px; color: var(--orange); font-size: .78rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+		h1, h2 { font-family: "Space Grotesk", sans-serif; }
+		h1 { max-width: 570px; margin: 0; font-size: clamp(2.3rem, 6vw, 5.2rem); line-height: .94; letter-spacing: -.04em; }
+		.status { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: .86rem; white-space: nowrap; }
+		.status-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--orange); }
+		.status.ready .status-dot { background: #2e9b6f; }
+		.translator { overflow: hidden; border: 1px solid rgba(23, 34, 31, .1); border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); }
+		.toolbar { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+		label { color: var(--muted); font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+		select { min-width: 180px; border: 0; color: var(--ink); background: transparent; font: 600 1rem "DM Sans", sans-serif; outline: none; cursor: pointer; }
+		.arrow { color: var(--orange); font-size: 1.25rem; }
+		.panels { display: grid; grid-template-columns: 1fr 1fr; }
+		.panel { min-height: 370px; padding: 28px; }
+		.panel + .panel { border-left: 1px solid var(--line); background: #f4f8ef; }
+		textarea, #result { width: 100%; min-height: 255px; border: 0; resize: vertical; color: var(--ink); background: transparent; font: 1.25rem/1.5 "DM Sans", sans-serif; outline: none; }
+		textarea::placeholder { color: #a0aaa3; }
+		#result { white-space: pre-wrap; }
+		#result.empty { color: #9aa59d; }
+		.panel-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; color: var(--muted); font-size: .8rem; }
+		button { border: 0; border-radius: 4px; padding: 13px 19px; color: white; background: var(--green); font: 700 .9rem "DM Sans", sans-serif; cursor: pointer; transition: background .2s, transform .2s; }
+		button:hover { background: var(--green-dark); transform: translateY(-1px); }
+		button:disabled { cursor: wait; opacity: .55; transform: none; }
+		.hint { max-width: 1120px; margin: 18px auto 0; color: var(--muted); font-size: .86rem; line-height: 1.5; }
+		@media (max-width: 720px) { .shell { width: min(100% - 24px, 600px); padding-top: 24px; } header { align-items: flex-start; flex-direction: column; margin-bottom: 24px; } .panels { grid-template-columns: 1fr; } .panel { min-height: 290px; padding: 22px; } .panel + .panel { border-top: 1px solid var(--line); border-left: 0; } textarea, #result { min-height: 175px; } .toolbar { flex-wrap: wrap; } }
+	</style>
+</head>
+<body>
+	<main class="shell">
+		<header>
+			<div>
+				<p class="kicker">Translate Wrapper / prototype</p>
+				<h1>Say it in another language.</h1>
+			</div>
+			<div class="status" id="status" role="status"><span class="status-dot"></span><span id="statusText">Extension not detected</span></div>
+		</header>
+
+		<section class="translator" aria-label="Translation tool">
+			<div class="toolbar">
+				<label for="language">Translate from</label>
+				<select id="language">
+					<option value="es">Spanish</option>
+					<option value="fr">French</option>
+					<option value="de">German</option>
+					<option value="it">Italian</option>
+					<option value="pt">Portuguese</option>
+					<option value="ja">Japanese</option>
+					<option value="ko">Korean</option>
+					<option value="zh-CN">Chinese</option>
+					<option value="auto">Detect language</option>
+				</select>
+				<span class="arrow" aria-hidden="true">→</span>
+				<strong>English</strong>
+			</div>
+			<div class="panels">
+				<div class="panel">
+					<textarea id="input" maxlength="5000" placeholder="Write something to translate..."></textarea>
+					<div class="panel-footer"><span id="count">0 / 5000</span><button id="translate" type="button">Translate</button></div>
+				</div>
+				<div class="panel">
+					<div id="result" class="empty" aria-live="polite">Your translation will appear here.</div>
+					<div class="panel-footer"><span id="message">Ready when you are.</span></div>
+				</div>
+			</div>
+		</section>
+		<p class="hint">This prototype sends requests through the installed Chrome extension and reads the result from a Google Translate tab.</p>
+	</main>
+	<script>
+		const REQUEST_TYPE = "TRANSLATE_WRAPPER_REQUEST";
+		const RESPONSE_TYPE = "TRANSLATE_WRAPPER_RESPONSE";
+		const input = document.getElementById("input");
+		const result = document.getElementById("result");
+		const button = document.getElementById("translate");
+		const language = document.getElementById("language");
+		const count = document.getElementById("count");
+		const message = document.getElementById("message");
+		const status = document.getElementById("status");
+		const statusText = document.getElementById("statusText");
+
+		input.addEventListener("input", () => { count.textContent = `${input.value.length} / 5000`; });
+		window.addEventListener("message", (event) => {
+			if (event.source === window && event.origin === window.location.origin && event.data?.type === "TRANSLATE_WRAPPER_PONG") {
+				status.classList.add("ready");
+				statusText.textContent = "Extension connected";
+				return;
+			}
+			if (event.source !== window || event.origin !== window.location.origin || event.data?.type !== RESPONSE_TYPE) return;
+			button.disabled = false;
+			if (event.data.error) {
+				result.textContent = event.data.error;
+				message.textContent = "Translation unavailable";
+				return;
+			}
+			result.classList.remove("empty");
+			result.textContent = event.data.translation;
+			message.textContent = "Translated through Google Translate";
+		});
+		button.addEventListener("click", () => {
+			const text = input.value.trim();
+			if (!text) { message.textContent = "Enter text first"; input.focus(); return; }
+			button.disabled = true;
+			result.classList.add("empty");
+			result.textContent = "Translating...";
+			message.textContent = "Waiting for the extension";
+			window.postMessage({ type: REQUEST_TYPE, requestId: crypto.randomUUID(), text, sourceLanguage: language.value }, window.location.origin);
+		});
+		window.postMessage({ type: "TRANSLATE_WRAPPER_PING" }, window.location.origin);
+		setTimeout(() => {
+			if (!status.classList.contains("ready")) statusText.textContent = "Install the extension to translate";
+		}, 500);
+	</script>
+</body>
+</html>
