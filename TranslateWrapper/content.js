@@ -22,7 +22,8 @@ window.addEventListener("message", (event) => {
       type: REQUEST_TYPE,
       requestId: message.requestId,
       text: message.text,
-      sourceLanguage: message.sourceLanguage
+      sourceLanguage: message.sourceLanguage,
+      targetLanguage: message.targetLanguage
     },
     (response) => {
       const runtimeError = chrome.runtime.lastError;

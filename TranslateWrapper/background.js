@@ -18,10 +18,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return false;
   }
 
-  const sourceLanguage = /^[a-z]{2,8}$/i.test(request.sourceLanguage || "")
+  const isLanguageCode = (value) => /^(auto|[a-z]{2,8}(?:-[a-z]{2,8})?)$/i.test(value || "");
+  const sourceLanguage = isLanguageCode(request.sourceLanguage)
     ? request.sourceLanguage.toLowerCase()
     : "auto";
-  const targetUrl = `https://translate.google.com/?sl=${encodeURIComponent(sourceLanguage)}&tl=en&text=${encodeURIComponent(text)}&op=translate`;
+  const targetLanguage = isLanguageCode(request.targetLanguage)
+    ? request.targetLanguage.toLowerCase()
+    : "en";
+  const targetUrl = `https://translate.google.com/?sl=${encodeURIComponent(sourceLanguage)}&tl=${encodeURIComponent(targetLanguage)}&text=${encodeURIComponent(text)}&op=translate`;
   let settled = false;
   let timeoutId;
 
