@@ -58,17 +58,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.tabs.onUpdated.removeListener(onUpdated);
       chrome.scripting.executeScript({
         target: { tabId },
-        func: () => {
+        func: async () => {
           const selectors = [
-            "[data-result-index]",
+            '.ryNqvb[jsname="W297wb"]',
             ".ryNqvb",
+            "[data-result-index]",
             ".lRu31",
             ".JLqJ4b"
           ];
-          const result = selectors
-            .map((selector) => document.querySelector(selector)?.innerText?.trim())
-            .find(Boolean);
-          return result || null;
+
+          for (let attempt = 0; attempt < 60; attempt += 1) {
+            const result = selectors
+              .map((selector) => document.querySelector(selector)?.innerText?.trim())
+              .find(Boolean);
+            if (result) {
+              return result;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 250));
+          }
+
+          return null;
         }
       }).then((results) => {
         const translation = results?.[0]?.result;
