@@ -72,30 +72,10 @@
 		<section class="translator" aria-label="Translation tool">
 			<div class="toolbar">
 				<label for="language">Translate from</label>
-				<select id="language">
-					<option value="es">Spanish</option>
-					<option value="fr">French</option>
-					<option value="de">German</option>
-					<option value="it">Italian</option>
-					<option value="pt">Portuguese</option>
-					<option value="ja">Japanese</option>
-					<option value="ko">Korean</option>
-					<option value="zh-CN">Chinese</option>
-					<option value="auto">Detect language</option>
-				</select>
+				<select id="language" aria-label="Translate from"></select>
 				<span class="arrow" aria-hidden="true">→</span>
 				<label for="targetLanguage">Translate to</label>
-				<select id="targetLanguage">
-					<option value="en">English</option>
-					<option value="es">Spanish</option>
-					<option value="fr">French</option>
-					<option value="de">German</option>
-					<option value="it">Italian</option>
-					<option value="pt">Portuguese</option>
-					<option value="ja">Japanese</option>
-					<option value="ko">Korean</option>
-					<option value="zh-CN">Chinese</option>
-				</select>
+				<select id="targetLanguage" aria-label="Translate to"></select>
 				<button class="swap" id="swap" type="button" title="Swap languages" aria-label="Swap languages">⇄</button>
 			</div>
 			<div class="panels">
@@ -124,6 +104,39 @@
 		const message = document.getElementById("message");
 		const status = document.getElementById("status");
 		const statusText = document.getElementById("statusText");
+		const languages = [
+			["af", "Afrikaans"], ["sq", "Albanian"], ["am", "Amharic"], ["ar", "Arabic"], ["hy", "Armenian"],
+			["as", "Assamese"], ["ay", "Aymara"], ["az", "Azerbaijani"], ["eu", "Basque"], ["be", "Belarusian"],
+			["bn", "Bengali"], ["bho", "Bhojpuri"], ["bs", "Bosnian"], ["bg", "Bulgarian"], ["ca", "Catalan"],
+			["ceb", "Cebuano"], ["zh-CN", "Chinese (Simplified)"], ["zh-TW", "Chinese (Traditional)"], ["co", "Corsican"], ["hr", "Croatian"],
+			["cs", "Czech"], ["da", "Danish"], ["dv", "Dhivehi"], ["doi", "Dogri"], ["nl", "Dutch"],
+			["en", "English"], ["eo", "Esperanto"], ["et", "Estonian"], ["ee", "Ewe"], ["fil", "Filipino"],
+			["fi", "Finnish"], ["fr", "French"], ["fy", "Frisian"], ["gl", "Galician"], ["ka", "Georgian"],
+			["de", "German"], ["el", "Greek"], ["gn", "Guarani"], ["gu", "Gujarati"], ["ht", "Haitian Creole"],
+			["ha", "Hausa"], ["haw", "Hawaiian"], ["he", "Hebrew"], ["hi", "Hindi"], ["hmn", "Hmong"],
+			["hu", "Hungarian"], ["is", "Icelandic"], ["ig", "Igbo"], ["ilo", "Ilocano"], ["id", "Indonesian"],
+			["ga", "Irish"], ["it", "Italian"], ["ja", "Japanese"], ["jv", "Javanese"], ["kn", "Kannada"],
+			["kk", "Kazakh"], ["km", "Khmer"], ["rw", "Kinyarwanda"], ["gom", "Konkani"], ["ko", "Korean"],
+			["kri", "Krio"], ["ku", "Kurdish"], ["ky", "Kyrgyz"], ["lo", "Lao"], ["la", "Latin"],
+			["lv", "Latvian"], ["ln", "Lingala"], ["lt", "Lithuanian"], ["lg", "Luganda"], ["lb", "Luxembourgish"],
+			["mk", "Macedonian"], ["mai", "Maithili"], ["mg", "Malagasy"], ["ms", "Malay"], ["ml", "Malayalam"],
+			["mt", "Maltese"], ["mi", "Maori"], ["mr", "Marathi"], ["mni-Mtei", "Meiteilon"], ["lus", "Mizo"],
+			["mn", "Mongolian"], ["my", "Myanmar (Burmese)"], ["ne", "Nepali"], ["no", "Norwegian"], ["ny", "Nyanja"],
+			["or", "Odia"], ["om", "Oromo"], ["ps", "Pashto"], ["fa", "Persian"], ["pl", "Polish"],
+			["pt", "Portuguese"], ["pa", "Punjabi"], ["qu", "Quechua"], ["ro", "Romanian"], ["ru", "Russian"],
+			["sm", "Samoan"], ["sa", "Sanskrit"], ["gd", "Scots Gaelic"], ["nso", "Sepedi"], ["sr", "Serbian"],
+			["st", "Sesotho"], ["sn", "Shona"], ["sd", "Sindhi"], ["si", "Sinhala"], ["sk", "Slovak"],
+			["sl", "Slovenian"], ["so", "Somali"], ["es", "Spanish"], ["su", "Sundanese"], ["sw", "Swahili"],
+			["sv", "Swedish"], ["tg", "Tajik"], ["ta", "Tamil"], ["tt", "Tatar"], ["te", "Telugu"],
+			["th", "Thai"], ["ti", "Tigrinya"], ["ts", "Tsonga"], ["tr", "Turkish"], ["tk", "Turkmen"],
+			["uk", "Ukrainian"], ["ur", "Urdu"], ["ug", "Uyghur"], ["uz", "Uzbek"], ["vi", "Vietnamese"],
+			["cy", "Welsh"], ["xh", "Xhosa"], ["yi", "Yiddish"], ["yo", "Yoruba"], ["zu", "Zulu"]
+		];
+		const languageOptions = languages.map(([code, name]) => `<option value="${code}">${name}</option>`).join("");
+		language.innerHTML = languageOptions;
+		targetLanguage.innerHTML = languageOptions;
+		language.value = "es";
+		targetLanguage.value = "en";
 
 		input.addEventListener("input", () => { count.textContent = `${input.value.length} / 5000`; });
 		window.addEventListener("message", (event) => {
@@ -153,11 +166,6 @@
 			window.postMessage({ type: REQUEST_TYPE, requestId: crypto.randomUUID(), text, sourceLanguage: language.value, targetLanguage: targetLanguage.value }, window.location.origin);
 		});
 		swap.addEventListener("click", () => {
-			if (language.value === "auto") {
-				language.value = targetLanguage.value;
-				targetLanguage.value = "en";
-				return;
-			}
 			const sourceLanguage = language.value;
 			language.value = targetLanguage.value;
 			targetLanguage.value = sourceLanguage;
