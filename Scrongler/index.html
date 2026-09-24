@@ -54,6 +54,8 @@
 		.panel-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; color: var(--muted); font-size: .8rem; }
 		button { border: 0; border-radius: 4px; padding: 13px 19px; color: white; background: var(--green); font: 700 .9rem "DM Sans", sans-serif; cursor: pointer; transition: background .2s, transform .2s; }
 		button:hover { background: var(--green-dark); transform: translateY(-1px); }
+		button.secondary { color: var(--green); background: transparent; border: 1px solid var(--green); }
+		button.secondary:hover { color: white; background: var(--green); }
 		button:disabled { cursor: wait; opacity: .55; transform: none; }
 		.hint { max-width: 1120px; margin: 18px auto 0; color: var(--muted); font-size: .86rem; line-height: 1.5; }
 		.version { position: fixed; right: 16px; bottom: 12px; z-index: 2; padding: 6px 9px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); background: rgba(255, 254, 249, .9); font-size: .7rem; letter-spacing: .05em; }
@@ -82,7 +84,7 @@
 			<div class="panels">
 				<div class="panel">
 					<textarea id="input" maxlength="5000" placeholder="Write something to translate..."></textarea>
-					<div class="panel-footer"><span id="count">0 / 5000</span><button id="translate" type="button">Translate</button></div>
+					<div class="panel-footer"><span id="count">0 / 5000</span><span><button class="secondary" id="scrongle" type="button">Scrongle</button> <button id="translate" type="button">Translate</button></span></div>
 				</div>
 				<div class="panel">
 					<div id="result" class="empty" aria-live="polite">Your translation will appear here.</div>
@@ -99,6 +101,7 @@
 		const input = document.getElementById("input");
 		const result = document.getElementById("result");
 		const button = document.getElementById("translate");
+		const scrongle = document.getElementById("scrongle");
 		const language = document.getElementById("language");
 		const targetLanguage = document.getElementById("targetLanguage");
 		const swap = document.getElementById("swap");
@@ -106,6 +109,7 @@
 		const message = document.getElementById("message");
 		const status = document.getElementById("status");
 		const statusText = document.getElementById("statusText");
+		const pendingRequests = new Map();
 		const languages = [
 			["af", "Afrikaans"], ["sq", "Albanian"], ["am", "Amharic"], ["ar", "Arabic"], ["hy", "Armenian"],
 			["as", "Assamese"], ["ay", "Aymara"], ["az", "Azerbaijani"], ["eu", "Basque"], ["be", "Belarusian"],
@@ -141,6 +145,12 @@
 		targetLanguage.value = "en";
 
 		input.addEventListener("input", () => { count.textContent = `${input.value.length} / 5000`; });
+		const requestTranslation = (text, sourceLanguage, targetLanguage) => new Promise((resolve, reject) => {
+			const requestId = crypto.randomUUID();
+			pendingRequests.set(requestId, { resolve, reject });
+			window.postMessage({ type: REQUEST_TYPE, requestId, text, sourceLanguage, targetLanguage }, window.location.origin);
+		});
+
 		window.addEventListener("message", (event) => {
 			if (event.source === window && event.origin === window.location.origin && event.data?.type === "TRANSLATE_WRAPPER_PONG") {
 				status.classList.add("ready");
@@ -148,24 +158,65 @@
 				return;
 			}
 			if (event.source !== window || event.origin !== window.location.origin || event.data?.type !== RESPONSE_TYPE) return;
-			button.disabled = false;
-			if (event.data.error) {
-				result.textContent = event.data.error;
-				message.textContent = "Translation unavailable";
-				return;
-			}
-			result.classList.remove("empty");
-			result.textContent = event.data.translation;
-			message.textContent = "Translated through Google Translate";
+			const pending = pendingRequests.get(event.data.requestId);
+			if (!pending) return;
+			pendingRequests.delete(event.data.requestId);
+			if (event.data.error) pending.reject(new Error(event.data.error));
+			else pending.resolve(event.data.translation);
 		});
-		button.addEventListener("click", () => {
+		const setBusy = (busy) => {
+			button.disabled = busy;
+			scrongle.disabled = busy;
+		};
+		const getInput = () => {
 			const text = input.value.trim();
-			if (!text) { message.textContent = "Enter text first"; input.focus(); return; }
-			button.disabled = true;
+			if (!text) { message.textContent = "Enter text first"; input.focus(); return null; }
+			return text;
+		};
+		button.addEventListener("click", async () => {
+			const text = getInput();
+			if (!text) return;
+			setBusy(true);
 			result.classList.add("empty");
 			result.textContent = "Translating...";
 			message.textContent = "Waiting for the extension";
-			window.postMessage({ type: REQUEST_TYPE, requestId: crypto.randomUUID(), text, sourceLanguage: language.value, targetLanguage: targetLanguage.value }, window.location.origin);
+			try {
+				result.textContent = await requestTranslation(text, language.value, targetLanguage.value);
+				result.classList.remove("empty");
+				message.textContent = "Translated through Google Translate";
+			} catch (error) {
+				result.textContent = error.message;
+				message.textContent = "Translation unavailable";
+			} finally {
+				setBusy(false);
+			}
+		});
+		scrongle.addEventListener("click", async () => {
+			const text = getInput();
+			if (!text) return;
+			setBusy(true);
+			result.classList.add("empty");
+			result.textContent = "Scrongling...";
+			message.textContent = "Translating each word into a random language";
+			const tokens = text.match(/\S+|\s+/g) || [];
+			try {
+				const words = tokens.filter((token) => !/^\s+$/.test(token));
+				const translations = [];
+				for (const word of words) {
+					const availableLanguages = languages.filter(([code]) => code !== language.value);
+					const randomTarget = availableLanguages[Math.floor(Math.random() * availableLanguages.length)][0];
+					translations.push(await requestTranslation(word, language.value, randomTarget));
+				}
+				let wordIndex = 0;
+				result.textContent = tokens.map((token) => /^\s+$/.test(token) ? token : translations[wordIndex++]).join("");
+				result.classList.remove("empty");
+				message.textContent = `Scrongled ${words.length} words`;
+			} catch (error) {
+				result.textContent = error.message;
+				message.textContent = "Scrongle unavailable";
+			} finally {
+				setBusy(false);
+			}
 		});
 		swap.addEventListener("click", () => {
 			const sourceLanguage = language.value;
